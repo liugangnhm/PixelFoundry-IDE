@@ -478,6 +478,8 @@ class ApiConfigWidget(QWidget):
         preset = next((p for p in PROVIDER_PRESETS.get(self.kind, []) if p["key"] == key), None)
         if preset is None:
             return
+        if self.kind == "image":
+            self._set_field("provider", (preset.get("params") or {}).get("provider", "generic"))
         self._set_field("base_url", preset.get("base_url", ""))
         self._set_field("model", preset.get("model", ""))
         if "endpoint" in preset:

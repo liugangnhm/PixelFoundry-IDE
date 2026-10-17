@@ -1,5 +1,9 @@
 # PixelFoundry IDE
 
+This fork includes built-in **Agnes AI** presets for chat, image generation/editing,
+and first-frame video animation. Select Agnes AI in each API settings tab and
+enter your own key. See the [integration guide](docs/agnes_ai.md).
+
 > **PixelFoundry — Pixel Game Asset Foundry** · 像素铸造 IDE
 > 中文文档：[README_CN.md](README_CN.md) · UI 语言可在 设置 → 常规 → 语言 切换
 

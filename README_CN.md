@@ -2,6 +2,9 @@
 
 > **PixelFoundry — Pixel Game Asset Foundry** · 英文文档：[README.md](README.md) · UI 语言可在 设置 → 常规 → 语言 切换（中/英）
 
+本 fork 已内置 **Agnes AI** 文本、文生图 / 图生图、首帧视频支持。
+在三个 API 配置页分别选择「Agnes AI」预设并填写自己的 Key 即可；详见 [接入说明](docs/agnes_ai.md)。
+
 [![CI](https://github.com/xf785/PixelFoundry-IDE/actions/workflows/ci.yml/badge.svg)](https://github.com/xf785/PixelFoundry-IDE/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/badge/release-v1.1.0-blue.svg)](https://github.com/xf785/PixelFoundry-IDE/releases)
 [![License: AGPL v3](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)

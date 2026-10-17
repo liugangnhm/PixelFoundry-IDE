@@ -306,7 +306,9 @@ def test_api_config_widget_video_provider_choice(qtbot, ctx):
     qtbot.addWidget(widget)
     widget.refresh()
     provider_widget = widget._fields["provider"]
-    assert provider_widget.count() == 4  # generic / doubao / gptge / custom
+    assert {provider_widget.itemData(i) for i in range(provider_widget.count())} == {
+        "generic", "agnes", "doubao", "gptge", "custom",
+    }
     widget._set_field("provider", "gptge")
     assert widget._get_field("provider") == "gptge"
     widget._set_field("base_url", "https://api.gpt.ge")

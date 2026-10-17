@@ -6,6 +6,7 @@ import logging
 from config.settings import API_KINDS
 
 from .base import BaseAPI
+from .agnes_api import AgnesImageAPI, AgnesVideoAPI
 from .image_api import ImageAPI
 from .llm_api import LLMAPI
 from .mock_clients import MockImageAPI, MockLLMAPI, MockVideoAPI
@@ -43,6 +44,12 @@ def create_api_client(kind: str, config) -> BaseAPI:
     if _use_mock(config):
         logger.info("使用模拟 %s 客户端", kind)
         return _MOCK[kind](config)
+    params = _config_value(config, "params", None) or {}
+    if params.get("provider") == "agnes":
+        if kind == "image":
+            return AgnesImageAPI(config)
+        if kind == "video":
+            return AgnesVideoAPI(config)
     return _REAL[kind](config)
 
 

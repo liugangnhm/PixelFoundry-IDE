@@ -79,6 +79,8 @@ FIELD_DEFS: Dict[str, List[dict]] = {
         {"key": "mock", "label": "使用模拟 API（无需密钥）", "type": "bool", "default": False},
     ],
     "image": [
+        {"key": "provider", "label": "服务商适配", "type": "choice", "default": "generic",
+         "options": [("generic", "OpenAI compatible"), ("agnes", "Agnes AI")]},
         {"key": "base_url", "label": "Base URL", "type": "text", "default": "https://api.openai.com/v1", "required": True},
         {"key": "api_key", "label": "API Key", "type": "password", "default": "", "required": True},
         {"key": "model", "label": "模型名称", "type": "text", "default": "gpt-image-1", "required": True},
@@ -118,7 +120,7 @@ FIELD_DEFS: Dict[str, List[dict]] = {
         {"key": "api_key", "label": "API Key", "type": "password", "default": "", "required": True},
         {"key": "model", "label": "模型名称", "type": "text", "default": "video-model", "required": True},
         {"key": "provider", "label": "服务商适配", "type": "choice", "default": "generic",
-         "options": [("generic", "通用（OpenAI 兼容轮询）"), ("doubao", "Doubao Seedance（火山方舟）"), ("gptge", "gpt.ge (V-API) 豆包视频"), ("custom", "完全自定义（全部手填：端点/模板/字段路径）")]},
+         "options": [("generic", "通用（OpenAI 兼容轮询）"), ("agnes", "Agnes AI"), ("doubao", "Doubao Seedance（火山方舟）"), ("gptge", "gpt.ge (V-API) 豆包视频"), ("custom", "完全自定义（全部手填：端点/模板/字段路径）")]},
         {"key": "auth_style", "label": "鉴权方式", "type": "choice", "default": "bearer",
          "options": AUTH_STYLE_OPTIONS,
          "placeholder": "多数服务商用 Bearer；中转站常用 X-API-Key / api-key / 查询参数"},
@@ -183,6 +185,8 @@ FIELD_DEFS: Dict[str, List[dict]] = {
 # --------------------------------------------------------------------------- #
 PROVIDER_PRESETS: Dict[str, List[dict]] = {
     "llm": [
+        {"key": "agnes", "label": "Agnes AI", "base_url": "https://apihub.agnes-ai.com/v1", "model": "agnes-3.0-flash",
+         "endpoint": "", "params": {"auth_style": "bearer", "custom_request": False, "payload_template": "", "mock": False}},
         {"key": "openai", "label": "OpenAI", "base_url": "https://api.openai.com/v1", "model": "gpt-4o-mini"},
         {"key": "gptge", "label": "gpt.ge (V-API)", "base_url": "https://api.gpt.ge/v1", "model": "gpt-4o-mini"},
         {"key": "deepseek", "label": "DeepSeek", "base_url": "https://api.deepseek.com", "model": "deepseek-chat"},
@@ -195,6 +199,8 @@ PROVIDER_PRESETS: Dict[str, List[dict]] = {
         {"key": "ollama", "label": "Ollama（本地）", "base_url": "http://localhost:11434/v1", "model": "llama3.1"},
     ],
     "image": [
+        {"key": "agnes", "label": "Agnes AI", "base_url": "https://apihub.agnes-ai.com/v1", "model": "agnes-image-2.5-flash",
+         "endpoint": "", "params": {"provider": "agnes", "auth_style": "bearer", "response_format": "b64_json", "image_mode": "data_uri", "size": "1024x1024", "custom_request": False, "payload_template": "", "mock": False}},
         {"key": "openai", "label": "OpenAI", "base_url": "https://api.openai.com/v1", "model": "gpt-image-1", "params": {"response_format": "b64_json"}},
         {"key": "gptge", "label": "gpt.ge (V-API)", "base_url": "https://api.gpt.ge/v1", "model": "gpt-image-1", "params": {"response_format": "b64_json", "image_mode": "multipart"}},
         {"key": "ark", "label": "火山方舟 Seedream", "base_url": "https://ark.cn-beijing.volces.com/api/v3", "model": "doubao-seedream-3-0-t2i-250415", "params": {"response_format": "b64_json"}},
@@ -208,6 +214,11 @@ PROVIDER_PRESETS: Dict[str, List[dict]] = {
          "params": {"response_format": "b64_json", "auth_style": "bearer", "images_path": "data"}},
     ],
     "video": [
+        {"key": "agnes", "label": "Agnes AI", "base_url": "https://apihub.agnes-ai.com/v1", "model": "agnes-video-2.5-flash",
+         "params": {"provider": "agnes", "auth_style": "bearer", "mode": "keyframe", "resolution": "720P", "ratio": "1:1", "last_frame": False,
+                    "submit_url": "", "poll_url": "", "submit_method": "POST", "poll_method": "GET", "poll_payload_template": "", "payload_template": "", "extra_payload": "",
+                    "job_id_path": "video_id", "status_path": "status", "result_video_url_path": "url", "status_success": "completed", "status_failure": "failed,cancelled,canceled",
+                    "poll_interval": 5, "max_polls": 180, "mock": False}},
         {"key": "generic", "label": "通用（OpenAI 兼容轮询）", "base_url": "", "model": "", "params": {"provider": "generic"}},
         {"key": "doubao_ark", "label": "Doubao Seedance（火山方舟）", "base_url": "https://ark.cn-beijing.volces.com/api/v3", "model": "doubao-seedance-1-0-pro-250528", "params": {"provider": "doubao", "last_frame": True}},
         {"key": "gptge_doubao", "label": "gpt.ge 豆包视频", "base_url": "https://api.gpt.ge", "model": "doubao-seedance-1-5-pro-251215", "params": {"provider": "gptge", "last_frame": True}},
