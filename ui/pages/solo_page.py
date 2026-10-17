@@ -1,7 +1,7 @@
 """Solo 模式页：一键式全自动生成像素铸造。
 
 布局参考 Krita：
-- **左停靠栏**：参数拆成 3 个可折叠 docker（输入参数 / 处理选项 / 导出），
+- **左停靠栏**：输入参数 / 处理选项 / 导出分为独立页签，
   整栏可收起成竖排标签，宽度由外层 splitter 拖动调整；
 - **右侧工作区**：「预览」与「中间结果」两个页签，随窗口弹性伸缩；
 - **底部**：运行控制 + 步骤/进度 + 日志。
@@ -226,23 +226,32 @@ class SoloPage(QWidget):
         out_row.addWidget(btn_browse)
         ef.addRow(T(QLabel(), "输出目录"), out_row)
 
-        # ---------- 表单分组 -> 左停靠栏的 docker ----------
-        # 「输入参数」+「图转视频参数」共用原来的滚动区（两块都是输入项，字段最多）：
-        # 面板被拖矮时仍可滚动查看全部字段，窗口变高时也由它吃掉多余空间
+        # ---------- 参数页签：每次只显示一组，各页独立滚动 ----------
         form_layout.addWidget(input_box)
         form_layout.addWidget(video_box)
         form_layout.addStretch(1)
         form_scroll.setWidget(form_host)
-        input_docker = self._left_dock.add_docker("输入参数", form_scroll, icon_kind="pencil", stretch=1)
-        input_docker.set_icon("pencil")  # 图标要显式渲染一次才可见（与像素页一致）
-        # 收起按钮放在第一个面板标题里（Krita 的 docker 右上角）
-        input_docker.add_header_widget(self._left_dock.add_toggle_button("chevron_left", "收起参数栏"))
-
-        # 其余分组各自一个可折叠 docker（高度由列 splitter 拖动调整）
-        opt_docker = self._left_dock.add_docker("处理选项", opt_box, icon_kind="layers")
-        opt_docker.set_icon("layers")
-        exp_docker = self._left_dock.add_docker("导出", exp_box, icon_kind="export_image")
-        exp_docker.set_icon("export_image")
+        self._settings_tabs = QTabWidget()
+        self._settings_tabs.setDocumentMode(True)
+        self._settings_tabs.addTab(form_scroll, tr("输入参数"))
+        T(self._settings_tabs, "输入参数", attr="tab", index=0)
+        for title, box in (("处理选项", opt_box), ("导出", exp_box)):
+            host = QWidget()
+            layout = QVBoxLayout(host)
+            layout.setContentsMargins(0, 0, 6, 0)
+            layout.addWidget(box)
+            layout.addStretch(1)
+            scroll = QScrollArea()
+            scroll.setWidgetResizable(True)
+            scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+            scroll.setWidget(host)
+            index = self._settings_tabs.addTab(scroll, tr(title))
+            T(self._settings_tabs, title, attr="tab", index=index)
+        settings_docker = self._left_dock.add_docker(
+            "参数", self._settings_tabs, icon_kind="pencil", stretch=1, collapsible=False,
+        )
+        settings_docker.set_icon("pencil")
+        settings_docker.add_header_widget(self._left_dock.add_toggle_button("chevron_left", "收起参数栏"))
 
         param_layout = QVBoxLayout(self._param_tab)
         param_layout.setContentsMargins(4, 8, 4, 4)

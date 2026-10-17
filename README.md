@@ -75,7 +75,7 @@ The UI supports **Chinese / English** — switch in **Settings → General → L
 ### Solo Mode — one-click pipeline
 
 1. In **Settings**, configure the three APIs (LLM / Image / Video), or tick **"Use mock API (no key)"** for offline use.
-2. Type a description on the **Parameters** tab (e.g. *"an orange kitten holding a sword, chibi, side view"*), pick an action & output options; optionally upload a **reference image** card for **image-to-image (i2i)**.
+2. Type a description on the left **Input parameters** tab (e.g. *"an orange kitten holding a sword, chibi, side view"*) and pick an action. **Processing options** and **Export** have separate tabs for processing settings and output formats; optionally upload a **reference image** card for **image-to-image (i2i)**.
 3. Hit **Start generating**: prompts → first frame (i2i when a reference exists) → animation → pixelization → background removal → export.
 4. The right-side preview supports **playback speed** (0.5x/1x/1.5x/2x/3x).
 5. **Sync to IDE** imports the first frame + final frame sequence into the IDE workspace for fine editing.
