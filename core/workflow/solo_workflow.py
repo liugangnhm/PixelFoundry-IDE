@@ -117,6 +117,9 @@ class SoloParams:
     bg_tolerance: int = 30
     bg_feather: int = 8
     reference_image: Optional[Path] = None   # 图生图参考图（用户自备）
+    directions: Tuple[str, ...] = ()        # 空值走原单视角流程；多方向由 DirectionalWorkflow 编排
+    initial_frame: Optional[Path] = None     # 已确认首帧，直接用于动画，不再生图
+    fixed_palette: Optional[List[RGB]] = None  # 多方向共用角色母图配色
     output_dir: Path = field(default_factory=lambda: Path("output"))
     export_gif: bool = True
     export_png: bool = True
@@ -353,25 +356,28 @@ class SoloWorkflow(WorkflowLogMixin):
         """
         p = self.params
         w, h = self._api_image_size(image_prompt)
-        ref_bytes = None
-        if p.reference_image:
-            try:
-                ref_bytes = fu.image_to_bytes(fu.load_image(p.reference_image), "PNG")
-                self._log_msg("info", tr("已附加参考图（图生图）: {0}").format(p.reference_image))
-            except Exception as exc:  # noqa: BLE001
-                self._log_msg("warn", tr("参考图读取失败，忽略: {0}").format(exc))
-        result = self.image_api.call(prompt=image_prompt, size=f"{w}x{h}", n=1, image=ref_bytes)
-        if not result.ok:
-            raise WorkflowError(tr("首帧图片生成失败: {0}").format(result.message), step="首帧图片生成")
-        images = (result.data or {}).get("images") or []
-        urls = (result.data or {}).get("urls") or []
-        if images:
-            data = images[0]
-        elif urls:
-            self._log_msg("info", tr("下载生图结果: {0}").format(urls[0]))
-            data = fu.download_bytes(urls[0])
+        if p.initial_frame:
+            data = fu.image_to_bytes(fu.load_image(p.initial_frame), "PNG")
         else:
-            raise WorkflowError(tr("生图接口未返回任何图片"), step="首帧图片生成")
+            ref_bytes = None
+            if p.reference_image:
+                try:
+                    ref_bytes = fu.image_to_bytes(fu.load_image(p.reference_image), "PNG")
+                    self._log_msg("info", tr("已附加参考图（图生图）: {0}").format(p.reference_image))
+                except Exception as exc:  # noqa: BLE001
+                    self._log_msg("warn", tr("参考图读取失败，忽略: {0}").format(exc))
+            result = self.image_api.call(prompt=image_prompt, size=f"{w}x{h}", n=1, image=ref_bytes)
+            if not result.ok:
+                raise WorkflowError(tr("首帧图片生成失败: {0}").format(result.message), step="首帧图片生成")
+            images = (result.data or {}).get("images") or []
+            urls = (result.data or {}).get("urls") or []
+            if images:
+                data = images[0]
+            elif urls:
+                self._log_msg("info", tr("下载生图结果: {0}").format(urls[0]))
+                data = fu.download_bytes(urls[0])
+            else:
+                raise WorkflowError(tr("生图接口未返回任何图片"), step="首帧图片生成")
         img = fu.bytes_to_image(data)
         bg_fill: Optional[RGB] = None
         if p.force_pure_bg:
@@ -576,7 +582,11 @@ class SoloWorkflow(WorkflowLogMixin):
             )
         # 共享调色板量化 + 去杂点（保证帧间颜色一致、不闪烁）
         # 用频率主导调色板：离散格色按出现频率取前 N，精确保留主色（MEDIANCUT 会混色）
-        shared_palette = px.extract_dominant_palette(refined[0], eff_colors) if refined else None
+        shared_palette = self.params.fixed_palette
+        if shared_palette:
+            eff_colors = len(shared_palette)
+        else:
+            shared_palette = px.extract_dominant_palette(refined[0], eff_colors) if refined else None
         quantized = px.pixelize_frames(
             refined,
             px.PixelizeParams(max_colors=eff_colors, edge_clean=True, palette=shared_palette),
@@ -693,6 +703,7 @@ class SoloWorkflow(WorkflowLogMixin):
         # JSON 序列化兼容：Path -> str，tuple -> list
         params["output_dir"] = str(params["output_dir"])
         params["reference_image"] = str(params["reference_image"]) if params.get("reference_image") else None
+        params["initial_frame"] = str(params["initial_frame"]) if params.get("initial_frame") else None
         if isinstance(params.get("bg_color"), tuple):
             params["bg_color"] = list(params["bg_color"])
         project = Project(

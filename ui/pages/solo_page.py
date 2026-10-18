@@ -47,6 +47,7 @@ from config.settings import (
 )
 from core.processing.prompt_utils import recommended_frames
 from core.workflow import SoloParams, SoloResult
+from core.workflow.directional_workflow import DIRECTIONS, FOUR_DIRECTIONS, EIGHT_DIRECTIONS, DirectionalResult
 from ui.app_context import AppContext
 from ui.i18n import T, tr
 from ui.layout import scaled
@@ -71,6 +72,7 @@ class SoloPage(QWidget):
         self._ctx = ctx
         self._worker: SoloWorker | None = None
         self._result: SoloResult | None = None
+        self._directional_result: DirectionalResult | None = None
         self._build_ui()
         self._restore_layout()
         self._restore_settings()
@@ -134,6 +136,16 @@ class SoloPage(QWidget):
         action_hint.setObjectName("HintLabel")
         action_hint.setWordWrap(True)
         f.addRow("", action_hint)
+
+        self._directions_combo = QComboBox()
+        for label, value in (("单方向（当前视角）", ()), ("四方向（正面 / 左侧 / 背面 / 右侧）", FOUR_DIRECTIONS),
+                             ("八方向（含四个斜向）", EIGHT_DIRECTIONS)):
+            self._directions_combo.addItem(tr(label), userData=value)
+        f.addRow(T(QLabel(), "动画方向"), self._directions_combo)
+        direction_hint = T(QLabel(), "多方向共用角色母图，各方向分别生成动画；参考图会直接用作母图。四 / 八方向会增加生成时间与 API 用量。")
+        direction_hint.setObjectName("HintLabel")
+        direction_hint.setWordWrap(True)
+        f.addRow("", direction_hint)
 
         self._aspect_combo = QComboBox()
         for ratio in ASPECT_RATIOS:
@@ -343,6 +355,10 @@ class SoloPage(QWidget):
         preview_box = T(QGroupBox(), "预览")
         pv = QVBoxLayout(preview_box)
         pv.setContentsMargins(8, 18, 8, 8)
+        self._direction_preview = QComboBox()
+        self._direction_preview.setVisible(False)
+        self._direction_preview.currentIndexChanged.connect(self._on_direction_changed)
+        pv.addWidget(self._direction_preview)
         speed_row = QHBoxLayout()
         speed_row.addWidget(T(QLabel(), "GIF 播放速度:"))
         self._preview_speed_combo = QComboBox()
@@ -490,6 +506,7 @@ class SoloPage(QWidget):
             export_apng=self._apng_chk.isChecked(),
             export_sprite=self._sprite_chk.isChecked(),
             reference_image=reference_image,
+            directions=tuple(self._directions_combo.currentData() or ()),
             output_dir=run_dir,
         )
 
@@ -509,6 +526,9 @@ class SoloPage(QWidget):
         self._preview.clear()
         self._clear_intermediate()
         self._result = None
+        self._directional_result = None
+        self._direction_preview.clear()
+        self._direction_preview.hide()
         self._btn_sync.setEnabled(False)
         self._log(tr("开始生成：{0}").format(desc[:60]))
         self._worker.start()
@@ -554,8 +574,35 @@ class SoloPage(QWidget):
         if self._result:
             self.sync_to_ide.emit(self._result)
 
-    def _on_success(self, result: SoloResult) -> None:
+    def _on_success(self, result: SoloResult | DirectionalResult) -> None:
+        self._directional_result = result if isinstance(result, DirectionalResult) else None
+        self._direction_preview.blockSignals(True)
+        self._direction_preview.clear()
+        if self._directional_result:
+            for direction in result.animations:
+                self._direction_preview.addItem(tr(DIRECTIONS[direction][0]), userData=direction)
+        self._direction_preview.blockSignals(False)
+        self._direction_preview.setVisible(self._directional_result is not None)
+        selected = next(iter(result.animations.values())) if self._directional_result else result
+        self._display_result(selected)
+        message = (tr("多方向动画已生成！\n{0}").format(result.output_dir)
+                   if self._directional_result else
+                   tr("动画已生成！\n{0}").format(result.gif_path or result.frames_dir)
+                   + (tr("原生分辨率版: {0}").format(result.native_gif_path) if result.native_gif_path else ""))
+        QMessageBox.information(self, tr("完成"), message)
+
+    def _on_direction_changed(self, _index: int) -> None:
+        if self._directional_result:
+            selected = self._directional_result.animations.get(self._direction_preview.currentData())
+            if selected:
+                self._display_result(selected)
+
+    def _display_result(self, result: SoloResult) -> None:
         self._result = result
+        if result.first_frame:
+            self._first_frame_viewer.show_path(result.first_frame)
+        for key, edit in self._prompt_edits.items():
+            edit.setPlainText(result.prompts.get(key, ""))
         self._set_running(False)
         self._progress.setValue(100)
         self._step_label.setText(tr("完成"))
@@ -567,6 +614,7 @@ class SoloPage(QWidget):
             self._log(f"GIF: {result.gif_path}")
         elif result.first_frame:
             self._preview.show_path(result.first_frame)
+        self._tabs.setCurrentWidget(self._param_tab)
         if result.native_gif_path:
             self._log(
                 tr("GIF（完美像素原生分辨率 {0}x{1}）: {2}").format(result.native_width, result.native_height, result.native_gif_path),
@@ -575,12 +623,6 @@ class SoloPage(QWidget):
         self._build_frames_strip(result)
         self._btn_open_out.setEnabled(True)
         self._btn_sync.setEnabled(True)
-        QMessageBox.information(
-            self,
-            tr("完成"),
-            tr("动画已生成！\n{0}").format(result.gif_path or result.frames_dir)
-            + (tr("原生分辨率版: {0}").format(result.native_gif_path) if result.native_gif_path else ""),
-        )
 
     def _on_failed(self, message: str) -> None:
         self._set_running(False)
@@ -593,6 +635,7 @@ class SoloPage(QWidget):
         self._btn_start.setEnabled(not running)
         self._btn_cancel.setEnabled(running)
         self._desc_edit.setEnabled(not running)
+        self._directions_combo.setEnabled(not running)
 
     # ------------------------------------------------------------------ #
     # 中间结果面板
@@ -657,7 +700,8 @@ class SoloPage(QWidget):
 
     def _on_open_output(self) -> None:
         if self._result:
-            QDesktopServices.openUrl(QUrl.fromLocalFile(str(self._result.output_dir)))
+            output = self._directional_result.output_dir if self._directional_result else self._result.output_dir
+            QDesktopServices.openUrl(QUrl.fromLocalFile(str(output)))
 
     # ------------------------------------------------------------------ #
     # 键盘快捷键（设置 → 快捷键 → Solo 可自定义；固定使用 solo 键位）
@@ -681,6 +725,8 @@ class SoloPage(QWidget):
     def retranslate_ui(self) -> None:
         populate_action_combo(self._action_combo)
         for combo, items in (
+            (self._directions_combo, [("单方向（当前视角）", ()), ("四方向（正面 / 左侧 / 背面 / 右侧）", FOUR_DIRECTIONS),
+                                      ("八方向（含四个斜向）", EIGHT_DIRECTIONS)]),
             (self._speed_combo, [("0.5x（慢放）", 0.5), ("1x（原速）", 1.0), ("1.5x", 1.5), ("2x（提速）", 2.0)]),
             (self._preview_speed_combo, [("0.5x", 0.5), ("1x（原速）", 1.0), ("1.5x", 1.5), ("2x", 2.0), ("3x", 3.0)]),
         ):
@@ -692,3 +738,6 @@ class SoloPage(QWidget):
             idx = combo.findData(current)
             combo.setCurrentIndex(idx if idx >= 0 else 0)
             combo.blockSignals(False)
+        for i in range(self._direction_preview.count()):
+            direction = self._direction_preview.itemData(i)
+            self._direction_preview.setItemText(i, tr(DIRECTIONS[direction][0]))

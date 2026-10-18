@@ -17,6 +17,7 @@ from core.workflow import (
     WorkflowError,
 )
 from ui.i18n import tr
+from core.workflow.directional_workflow import DirectionalWorkflow
 
 SPRITE_API_KINDS = ("llm", "image")
 
@@ -92,7 +93,8 @@ class SoloWorker(QThread):
                 self._clients.append(client)
                 clients[kind] = client
 
-            workflow = SoloWorkflow(
+            workflow_type = DirectionalWorkflow if self._params.directions else SoloWorkflow
+            workflow = workflow_type(
                 llm_api=clients["llm"],
                 image_api=clients["image"],
                 video_api=clients["video"],

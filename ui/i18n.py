@@ -22,6 +22,20 @@ _LANG: str = "zh"  # 当前语言（LANG_PACKS 的 key）
 LANG_PACKS: dict = {
     "zh": {},
     "en": {
+        "动画方向": "Animation directions",
+        "单方向（当前视角）": "Single direction (current view)",
+        "四方向（正面 / 左侧 / 背面 / 右侧）": "4 directions (front / left / back / right)",
+        "八方向（含四个斜向）": "8 directions (including diagonals)",
+        "多方向共用角色母图，各方向分别生成动画；参考图会直接用作母图。四 / 八方向会增加生成时间与 API 用量。": "Directions share one character master. An uploaded reference is used directly as the master. Each direction generates its own animation; 4/8 directions take more time and API usage.",
+        "多方向动画已生成！\n{0}": "Directional animations generated!\n{0}",
+        "正面（向下）": "Front (south)",
+        "左前（左下）": "Front-left (southwest)",
+        "左侧（向左）": "Left (west)",
+        "左后（左上）": "Back-left (northwest)",
+        "背面（向上）": "Back (north)",
+        "右后（右上）": "Back-right (northeast)",
+        "右侧（向右）": "Right (east)",
+        "右前（右下）": "Front-right (southeast)",
         # ---------- IDE 分步工作区：步骤条 / 首帧图 / 帧操作 ----------
         "执行当前步骤（与右侧参数栏底部按钮相同）": "Run the current step (same as the button at the bottom of the parameter dock)",
         "清空工作区，从头开始": "Clear the workspace and start over",

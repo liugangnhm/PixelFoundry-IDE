@@ -80,6 +80,11 @@ The UI supports **Chinese / English** — switch in **Settings → General → L
 4. The right-side preview supports **playback speed** (0.5x/1x/1.5x/2x/3x).
 5. **Sync to IDE** imports the first frame + final frame sequence into the IDE workspace for fine editing.
 
+**Directional animations:** select four or eight directions in **Input parameters → Animation directions**.
+All views share one character master image and use the same action. Switch direction previews,
+export each animation, or export a combined sprite sheet with one direction per row.
+See the [directional animation guide](docs/directional_animation.md).
+
 ### IDE Mode — step-by-step control
 
 The top-left **2×2 icon switch** (Solo ✦ / IDE ⊞ / Sprites ▤ / Pixel ▦) opens **IDE** (left rail expands). The Solo pipeline is split into **6 independently runnable steps** — text → image → animation → pixelize → background removal → export:
